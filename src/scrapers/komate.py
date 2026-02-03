@@ -31,6 +31,10 @@ class KomateScraper(BaseScraper):
     BASE_URL = "https://komate.saramin.co.kr"
     LIST_URL = "https://komate.saramin.co.kr/recruits/list"
 
+    # 타임아웃 설정 (GitHub Actions 환경 고려)
+    PAGE_TIMEOUT = 120000  # 120초
+    CONTENT_LOAD_WAIT = 3000  # 3초
+
     # 한국어 수준 매핑 (한국어 → 영어)
     KOREAN_LEVEL_MAP = {
         "원어민 수준 대화 가능": "Native level",
@@ -95,7 +99,7 @@ class KomateScraper(BaseScraper):
             assert self._page is not None
 
             # 목록 페이지 접속 (networkidle은 타임아웃 발생 가능)
-            await self._page.goto(self.LIST_URL, wait_until="domcontentloaded", timeout=60000)
+            await self._page.goto(self.LIST_URL, wait_until="domcontentloaded", timeout=self.PAGE_TIMEOUT)
             await self._page.wait_for_timeout(3000)  # 동적 콘텐츠 로드 대기
 
             # 스크롤하여 더 많은 공고 로드 (lazy loading 대응)
@@ -292,7 +296,7 @@ class KomateScraper(BaseScraper):
             await self._init_browser()
             assert self._page is not None
 
-            await self._page.goto(posting.url, wait_until="domcontentloaded", timeout=60000)
+            await self._page.goto(posting.url, wait_until="domcontentloaded", timeout=self.PAGE_TIMEOUT)
             await self._page.wait_for_timeout(2000)
 
             # 상세 정보 추출
@@ -477,7 +481,7 @@ class KomateScraper(BaseScraper):
             for i, posting in enumerate(postings, 1):
                 logger.info(f"  [{i}/{len(postings)}] {posting.title[:40]}...")
                 try:
-                    await self._page.goto(posting.url, wait_until="domcontentloaded", timeout=60000)
+                    await self._page.goto(posting.url, wait_until="domcontentloaded", timeout=self.PAGE_TIMEOUT)
                     await self._page.wait_for_timeout(1500)
 
                     detail = await self._extract_detail_info()
