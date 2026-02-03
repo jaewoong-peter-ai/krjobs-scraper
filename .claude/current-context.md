@@ -1,81 +1,40 @@
 # 현재 작업 컨텍스트
 
 ## 마지막 업데이트
-2026-02-03 02:30
+2026-02-03 20:00
 
 ---
 
-## 프로젝트 완료 상태
+## 프로젝트 상태
 
-### 스크래퍼 구현 현황
+### 인프라 구성
 
-| Site | 분석 | 구현 | Deep Scraping | 저장 |
-|------|------|------|---------------|------|
-| KOWORK | ✅ | ✅ | ✅ 리팩토링 완료 | Jobs 시트 |
-| Komate | ✅ | ✅ | ✅ | 통합 저장 |
-| Klik | ✅ | ✅ | ✅ | 통합 저장 |
+| 구성 요소 | 상태 | 비고 |
+|----------|------|------|
+| **GitHub 저장소** | ✅ | `jaewoong-peter-ai/krjobs-scraper` |
+| **GitHub Actions** | ✅ | 매일 KST 09:00 자동 실행 |
+| **Supabase DB** | ✅ | 18개 공고 저장됨 |
+| **SSH 키** | ✅ | `~/.ssh/id_ed25519_peter_ai` |
 
-### 통합 테스트 결과 (2026-02-03)
+### 스크래퍼 현황
 
-| 사이트 | 수집 공고 | 소요 시간 |
-|--------|----------|-----------|
-| Komate | 78개 | 263초 |
-| Klik | 6개 | 30초 |
-| **합계** | **84개** | **~5분** |
-
----
-
-## 완료된 작업
-
-### 0. KOWORK Deep Scraping 리팩토링 ✅ (2026-02-03)
-- **파일**: `src/scrapers/kowork.py`
-- **변경 내용**:
-  - 중복 JS evaluate 블록 통합 → `_extract_detail_info()`
-  - 데이터 병합 로직 분리 → `_update_posting_from_detail()`
-  - 구조화된 content_raw → `_compose_content_raw()`
-  - 한국어 수준 표준화 → `_normalize_korean_level()` + `KOREAN_LEVEL_MAP`
-  - 세션 만료 경고 기능 추가
-  - 봇 탐지 우회 설정 추가 (`--disable-blink-features`, `navigator.webdriver`)
-  - 대기 시간 설정 외부화 (`WAIT_*` 상수)
-  - `deadline` 필드 저장 추가
-- **결과**:
-  - DRY 원칙 준수 (중복 코드 제거)
-  - Komate/Klik 패턴과 일관성 확보
-  - 유지보수성 향상
-
-### 1. Komate 스크래퍼 구현 ✅
-- **파일**: `src/scrapers/komate.py`
-- **기능**:
-  - 목록 페이지 78개 공고 수집
-  - Deep Scraping (담당 업무, 우대 조건, 복지 혜택 등)
-  - 한국어 수준 4단계 추출
-  - 비자 정보 추출 (span 태그 파싱)
-- **기술적 해결**:
-  - 봇 탐지 우회: `--disable-blink-features=AutomationControlled`
-  - `navigator.webdriver` 속성 숨기기
-
-### 2. Klik 스크래퍼 구현 ✅
-- **파일**: `src/scrapers/klik.py`
-- **기능**:
-  - 목록 페이지 공고 수집 (lazy loading 대응)
-  - Deep Scraping (담당 업무, 한국어 능력, 비자 등)
-  - URL 패턴: `/jobs/{alphanumeric_id}`
-- **기술적 해결**:
-  - 봇 탐지 우회: Komate와 동일한 방식 적용
-
-### 3. LocalStorage 시트별 저장 기능 ✅
-- **파일**: `src/storage/local_storage.py`
-- **기능**: `save_to_sheet()`, `load_from_sheet()`, `get_sheet_stats()`
-
-### 4. 통합 테스트 ✅
-- **명령어**: `python main.py --sites komate klik`
-- **결과**: 99개 공고 저장 (kowork 15 + komate 78 + klik 6)
+| Site | 구현 | 자동화 | 비고 |
+|------|------|--------|------|
+| KOWORK | ✅ | ❌ | 세션 만료 이슈 |
+| Komate | ✅ | ❌ | **클라우드 IP 차단** (로컬에서만 실행) |
+| Klik | ✅ | ✅ | GitHub Actions 자동 실행 |
 
 ---
 
-## 데이터 파일 상태
+## 저장소 현황
 
-### `data/job_postings.xlsx`
+### Supabase DB (`job_postings` 테이블)
+| 소스 | 공고 수 |
+|------|--------|
+| klik | 18 |
+| **Total** | **18** |
+
+### 로컬 파일 (`data/job_postings.xlsx`)
 | 소스 | 공고 수 |
 |------|--------|
 | kowork | 15 |
@@ -85,94 +44,71 @@
 
 ---
 
-## 유지보수 명령어
+## 실행 명령어
 
-### 전체 스크래핑 실행
+### 자동 실행 (GitHub Actions)
+- **스케줄**: 매일 KST 09:00
+- **사이트**: Klik만
+- **저장소**: Supabase
+
+### 수동 실행 (로컬)
 ```bash
-# Komate + Klik (KOWORK는 세션 만료)
-python main.py --sites komate klik
+# Supabase에 저장 (Klik)
+python main.py --sites klik --storage supabase
 
-# 목록만 수집 (Deep Scraping 없이)
-python main.py --sites komate klik --no-deep
-```
+# Supabase에 저장 (Komate) - 로컬에서만 가능
+python main.py --sites komate --storage supabase
 
-### 저장소 통계 확인
-```bash
-python main.py --stats
-```
+# 로컬 파일에 저장
+python main.py --sites komate klik --storage local
 
-### 개별 사이트 테스트
-```bash
-# Komate
-python -c "
-import asyncio
-from src.scrapers import KomateScraper
-from src.storage import LocalStorage
-
-async def main():
-    storage = LocalStorage(file_format='xlsx')
-    scraper = KomateScraper(storage=storage)
-    postings = await scraper.scrape_list()
-    print(f'Found {len(postings)} postings')
-
-asyncio.run(main())
-"
-
-# Klik
-python -c "
-import asyncio
-from src.scrapers import KlikScraper
-from src.storage import LocalStorage
-
-async def main():
-    storage = LocalStorage(file_format='xlsx')
-    scraper = KlikScraper(storage=storage)
-    postings = await scraper.scrape_list()
-    print(f'Found {len(postings)} postings')
-
-asyncio.run(main())
-"
+# 통계 확인
+python main.py --stats --storage supabase
 ```
 
 ---
 
-## 대기 중인 작업
+## Git 설정
 
-### GitHub Actions 일일 자동화 (우선순위: 높음)
-- **상태**: ⏳ 대기 (계획 완료)
-- **계획 파일**: `.claude/plans/github-actions-automation-2026-02-03.md`
+### SSH 호스트 별칭 (jaewoong-peter-ai 계정)
+```
+Host github-peter-ai
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_peter_ai
+    IdentitiesOnly yes
+```
 
-#### 개요
-Komate + Klik 스크래퍼를 GitHub Actions로 매일 자동 실행 (KOWORK 제외)
-
-#### Phase 구성
-| Phase | 작업 | 상태 |
-|-------|------|------|
-| Phase 1 | 워크플로우 파일 생성 | ⏳ 대기 |
-| Phase 2 | 테스트 (수동 실행) | ⏳ 대기 |
-| Phase 3 | 스케줄 활성화 | ⏳ 대기 |
-
-#### 다음 세션 실행 명령어
-```bash
-# 수동 실행
-/load-context && /start-dev
+### Remote URL
+```
+origin  git@github-peter-ai:jaewoong-peter-ai/krjobs-scraper.git
 ```
 
 ---
 
-## 세션 시작 명령어
+## 알려진 이슈
 
-```bash
-# 컨텍스트 로드
-/load-context
+### Komate 클라우드 IP 차단
+- **증상**: GitHub Actions, GCP Cloud Run 모두 타임아웃
+- **원인**: 사람인(Komate)이 클라우드 IP 대역 차단
+- **해결**: 로컬 PC에서 수동 실행
 
-# 개발 시작
-/start-dev
+### KOWORK 세션 만료
+- **증상**: 로그인 세션 만료로 스크래핑 실패
+- **상태**: 미해결 (우선순위 낮음)
+
+---
+
+## 환경 변수 (.env)
+
+```
+SUPABASE_URL=https://ujxfzprxoowuufiicpey.supabase.co
+SUPABASE_ANON_KEY=<JWT_TOKEN>
 ```
 
 ---
 
-## 참조 문서
-- GitHub Actions 자동화: `.claude/plans/github-actions-automation-2026-02-03.md`
-- 상세 구현 계획: `.claude/plans/scraper-implementation-plan.md`
+## 참조
+- GitHub: https://github.com/jaewoong-peter-ai/krjobs-scraper
+- Supabase: https://supabase.com/dashboard/project/ujxfzprxoowuufiicpey
 - 코딩 가이드: `CLAUDE.md`
