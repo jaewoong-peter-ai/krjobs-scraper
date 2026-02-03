@@ -38,7 +38,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SCRAPE_DELAY_SECONDS: '2.0'
         run: |
-          python main.py --sites komate klik --storage supabase
+          python main.py --sites klik --storage supabase
 
       - name: Print summary
         if: always()
