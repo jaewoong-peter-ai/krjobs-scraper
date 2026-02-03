@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat CLAUDE.md .claude/current-context.md 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

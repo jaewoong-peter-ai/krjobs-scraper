@@ -1,0 +1,46 @@
+name: Daily Job Scraping
+
+on:
+  schedule:
+    # 매일 KST 09:00 (UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scrapers
+        env:
+          STORAGE_TYPE: supabase
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SCRAPE_DELAY_SECONDS: '2.0'
+        run: |
+          python main.py --sites komate klik --storage supabase
+
+      - name: Print summary
+        if: always()
+        run: |
+          echo "Scraping job completed at $(date)"
